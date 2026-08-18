@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.blog.mapper.CommentMapper">
+
+    <!-- Admin paginated query with optional status filter -->
+    <select id="selectCommentPage" resultType="com.blog.entity.Comment">
+        SELECT id, article_id, user_id, nickname, email, content, parent_id,
+               status, create_time, update_time
+        FROM comments
+        WHERE deleted = 0
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- Approved comments for a public article -->
+    <select id="selectApprovedCommentsByArticle" resultType="com.blog.entity.Comment">
+        SELECT id, article_id, user_id, nickname, email, content, parent_id,
+               status, create_time, update_time
+        FROM comments
+        WHERE deleted = 0 AND status = 1 AND article_id = #{articleId}
+        ORDER BY create_time ASC
+    </select>
+</mapper>

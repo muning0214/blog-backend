@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.blog.mapper.ArticleTagMapper">
+
+    <delete id="deleteByArticleId">
+        DELETE FROM article_tags WHERE article_id = #{articleId}
+    </delete>
+
+    <select id="selectArticleIdsByTagId" resultType="java.lang.Long">
+        SELECT article_id FROM article_tags WHERE tag_id = #{tagId}
+    </select>
+</mapper>

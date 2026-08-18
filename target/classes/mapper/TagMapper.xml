@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.blog.mapper.TagMapper">
+
+    <!-- Returns tags with the count of published articles linked -->
+    <select id="selectTagsWithCount" resultType="java.util.Map">
+        SELECT t.id AS id, t.name AS name,
+               (SELECT COUNT(1) FROM article_tags at
+                 JOIN articles a ON a.id = at.article_id AND a.deleted = 0 AND a.status = 1
+                WHERE at.tag_id = t.id) AS articleCount
+        FROM tags t
+        WHERE t.deleted = 0
+        ORDER BY t.id ASC
+    </select>
+
+    <select id="selectTagIdsByArticleId" resultType="java.lang.Long">
+        SELECT tag_id FROM article_tags WHERE article_id = #{articleId}
+    </select>
+</mapper>
