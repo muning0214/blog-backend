@@ -1,85 +1,123 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.blog.mapper.ArticleMapper">
+<mapper namespace="com.devlog.mapper.ArticleMapper">
 
-    <resultMap id="articleResultMap" type="com.blog.entity.Article">
-        <id column="id" property="id"/>
-        <result column="user_id" property="userId"/>
-        <result column="category_id" property="categoryId"/>
-        <result column="title" property="title"/>
-        <result column="summary" property="summary"/>
-        <result column="content" property="content"/>
-        <result column="cover" property="cover"/>
-        <result column="view_count" property="viewCount"/>
-        <result column="status" property="status"/>
-        <result column="is_top" property="isTop"/>
-        <result column="deleted" property="deleted"/>
-        <result column="create_time" property="createTime"/>
-        <result column="update_time" property="updateTime"/>
-        <result column="category_name" property="categoryName"/>
-        <result column="author_name" property="authorName"/>
-        <result column="tag_names" property="tagNames"/>
-    </resultMap>
-
-    <!-- Reusable column list with joins -->
-    <sql id="articleColumns">
-        a.id, a.user_id, a.category_id, a.title, a.summary, a.content, a.cover,
-        a.view_count, a.status, a.is_top, a.deleted, a.create_time, a.update_time,
-        c.name AS category_name,
+    <!-- 列表列：刻意不含 content，正文是 LONGTEXT，列表页不需要它 -->
+    <sql id="listColumns">
+        a.id, a.user_id, a.title, a.slug, a.summary, a.cover_path, a.status,
+        a.featured, a.views, a.reading_minutes, a.published_at, a.created_at, a.updated_at,
         u.nickname AS author_name
     </sql>
 
-    <!-- Paginated list query with optional filters -->
-    <select id="selectArticlePage" resultMap="articleResultMap">
+    <!-- 详情列：带上 content -->
+    <sql id="detailColumns">
+        a.id, a.user_id, a.title, a.slug, a.summary, a.content, a.cover_path, a.status,
+        a.featured, a.views, a.reading_minutes, a.published_at, a.created_at, a.updated_at,
+        u.nickname AS author_name
+    </sql>
+
+    <!--
+        分页查询。XML 里没有 LIMIT —— 由 MyBatis-Plus 的分页插件在运行时注入，
+        并额外生成一条 COUNT。前提是方法第一位参数是 Page。
+        标签筛选用 EXISTS 子查询而不是 JOIN，避免同一篇文章命中多个标签时出现重复行。
+    -->
+    <select id="selectArticlePage" resultType="com.devlog.entity.Article">
         SELECT
-            <include refid="articleColumns"/>,
-            (SELECT GROUP_CONCAT(t.name SEPARATOR ',')
-               FROM article_tags at2
-               JOIN tags t ON t.id = at2.tag_id AND t.deleted = 0
-              WHERE at2.article_id = a.id) AS tag_names
+        <include refid="listColumns"/>
         FROM articles a
-        LEFT JOIN categories c ON c.id = a.category_id AND c.deleted = 0
         LEFT JOIN users u ON u.id = a.user_id AND u.deleted = 0
         WHERE a.deleted = 0
-        <if test="publishedOnly">
-            AND a.status = 1
+        <if test="q.status != null and q.status != ''">
+            AND a.status = #{q.status}
         </if>
-        <if test="title != null and title != ''">
-            AND a.title LIKE CONCAT('%', #{title}, '%')
+        <if test="q.featuredOnly != null and q.featuredOnly">
+            AND a.featured = 1
         </if>
-        <if test="categoryId != null">
-            AND a.category_id = #{categoryId}
+        <if test="q.authorId != null">
+            AND a.user_id = #{q.authorId}
         </if>
-        <if test="status != null">
-            AND a.status = #{status}
-        </if>
-        <if test="tagId != null">
-            AND a.id IN (
-                SELECT at3.article_id FROM article_tags at3 WHERE at3.tag_id = #{tagId}
+        <if test="q.keyword != null and q.keyword != ''">
+            AND (
+            a.title LIKE CONCAT('%', #{q.keyword}, '%')
+            OR a.summary LIKE CONCAT('%', #{q.keyword}, '%')
+            OR a.content LIKE CONCAT('%', #{q.keyword}, '%')
             )
         </if>
-        ORDER BY a.is_top DESC, a.create_time DESC
+        <if test="q.tag != null and q.tag != ''">
+            AND EXISTS (
+            SELECT 1 FROM article_tags atg
+            JOIN tags t ON t.id = atg.tag_id AND t.deleted = 0
+            WHERE atg.article_id = a.id AND t.slug = #{q.tag}
+            )
+        </if>
+        ORDER BY a.featured DESC, COALESCE(a.published_at, a.created_at) DESC, a.id DESC
     </select>
 
-    <!-- Single article detail with joins -->
-    <select id="selectArticleDetail" resultMap="articleResultMap">
+    <select id="selectDetailBySlug" resultType="com.devlog.entity.Article">
         SELECT
-            <include refid="articleColumns"/>,
-            (SELECT GROUP_CONCAT(t.name SEPARATOR ',')
-               FROM article_tags at2
-               JOIN tags t ON t.id = at2.tag_id AND t.deleted = 0
-              WHERE at2.article_id = a.id) AS tag_names
+        <include refid="detailColumns"/>
         FROM articles a
-        LEFT JOIN categories c ON c.id = a.category_id AND c.deleted = 0
         LEFT JOIN users u ON u.id = a.user_id AND u.deleted = 0
-        WHERE a.id = #{id} AND a.deleted = 0
+        WHERE a.deleted = 0 AND a.slug = #{slug}
     </select>
 
-    <!-- Archive list: lightweight columns only -->
-    <select id="selectArchivePage" resultType="com.blog.entity.Article">
-        SELECT id, title, create_time
-        FROM articles
-        WHERE deleted = 0 AND status = 1
-        ORDER BY create_time DESC
+    <select id="selectDetailById" resultType="com.devlog.entity.Article">
+        SELECT
+        <include refid="detailColumns"/>
+        FROM articles a
+        LEFT JOIN users u ON u.id = a.user_id AND u.deleted = 0
+        WHERE a.deleted = 0 AND a.id = #{id}
     </select>
+
+    <select id="selectPrevNeighbour" resultType="com.devlog.entity.Article">
+        SELECT id, title, slug
+        FROM articles
+        WHERE deleted = 0
+        AND status = 'published'
+        AND published_at IS NOT NULL
+        AND published_at &lt; #{anchor}
+        AND id != #{selfId}
+        ORDER BY published_at DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectNextNeighbour" resultType="com.devlog.entity.Article">
+        SELECT id, title, slug
+        FROM articles
+        WHERE deleted = 0
+        AND status = 'published'
+        AND published_at IS NOT NULL
+        AND published_at &gt; #{anchor}
+        AND id != #{selfId}
+        ORDER BY published_at ASC
+        LIMIT 1
+    </select>
+
+    <select id="selectRelated" resultType="com.devlog.entity.Article">
+        SELECT a.id,
+        a.title,
+        a.slug,
+        a.summary,
+        a.views,
+        a.reading_minutes,
+        a.published_at,
+        a.created_at
+        FROM articles a
+        JOIN article_tags atg ON atg.article_id = a.id
+        JOIN tags t ON t.id = atg.tag_id AND t.deleted = 0
+        WHERE a.deleted = 0
+        AND a.status = 'published'
+        AND a.id != #{selfId}
+        AND t.slug = #{tagSlug}
+        ORDER BY a.published_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <update id="incrementViews">
+        UPDATE articles
+        SET views = views + 1
+        WHERE id = #{id}
+        AND status = 'published'
+        AND deleted = 0
+    </update>
 </mapper>

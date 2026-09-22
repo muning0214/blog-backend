@@ -1,19 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.blog.mapper.TagMapper">
+<mapper namespace="com.devlog.mapper.TagMapper">
 
-    <!-- Returns tags with the count of published articles linked -->
-    <select id="selectTagsWithCount" resultType="java.util.Map">
-        SELECT t.id AS id, t.name AS name,
-               (SELECT COUNT(1) FROM article_tags at
-                 JOIN articles a ON a.id = at.article_id AND a.deleted = 0 AND a.status = 1
-                WHERE at.tag_id = t.id) AS articleCount
+    <!--
+        标签 + 已发布文章数。
+        聚合放在数据库里做：前端只拿到十几行统计，而不是把整站文章拉下来自己数。
+        别名写成 camelCase 直接映射到 TagCountVO 字段；
+        序列化时再由 Jackson 的 SNAKE_CASE 策略转成 article_count / latest_at。
+    -->
+    <select id="selectTagCounts" resultType="com.devlog.vo.TagCountVO">
+        SELECT t.slug                                      AS tag,
+               COUNT(DISTINCT a.id)                        AS articleCount,
+               MAX(COALESCE(a.published_at, a.created_at)) AS latestAt
         FROM tags t
+        JOIN article_tags atg ON atg.tag_id = t.id
+        JOIN articles a ON a.id = atg.article_id
+            AND a.deleted = 0
+            AND a.status = 'published'
         WHERE t.deleted = 0
-        ORDER BY t.id ASC
+        GROUP BY t.slug
+        ORDER BY articleCount DESC, t.slug ASC
     </select>
 
-    <select id="selectTagIdsByArticleId" resultType="java.lang.Long">
-        SELECT tag_id FROM article_tags WHERE article_id = #{articleId}
+    <select id="selectBySlugs" resultType="com.devlog.entity.Tag">
+        SELECT id, user_id, name, slug, description, color, created_at, updated_at
+        FROM tags
+        WHERE deleted = 0
+        AND slug IN
+        <foreach collection="slugs" item="s" open="(" separator="," close=")">
+            #{s}
+        </foreach>
     </select>
 </mapper>

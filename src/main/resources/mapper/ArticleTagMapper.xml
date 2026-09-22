@@ -1,12 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.blog.mapper.ArticleTagMapper">
+<mapper namespace="com.devlog.mapper.ArticleTagMapper">
 
-    <delete id="deleteByArticleId">
-        DELETE FROM article_tags WHERE article_id = #{articleId}
-    </delete>
+    <!--
+        一次 SQL 插入一篇文章的全部标签关联。
+        原 test1 的实现是「先删干净，再 for 循环逐个 insert」，
+        十个标签就是十一次往返；这里合成一条。
 
-    <select id="selectArticleIdsByTagId" resultType="java.lang.Long">
-        SELECT article_id FROM article_tags WHERE tag_id = #{tagId}
-    </select>
+        用 INSERT IGNORE：表上有 (article_id, tag_id) 唯一键，
+        并发或重复提交时直接跳过而不是抛 23505。
+    -->
+    <insert id="batchInsert">
+        INSERT IGNORE INTO article_tags (article_id, tag_id)
+        VALUES
+        <foreach collection="tagIds" item="tagId" separator=",">
+            (#{articleId}, #{tagId})
+        </foreach>
+    </insert>
 </mapper>
