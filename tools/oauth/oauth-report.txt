@@ -1,0 +1,29 @@
+PASS  配置 / enabled 为 true  ::  enabled=true
+PASS  发起登录 / 返回授权地址且带上 client_id 与 state  ::  state 长度 43，参数齐备且 secret 未出现
+PASS  登录回调 / 全新 GitHub 用户建号并签发令牌  ::  昵称=新来的 邮箱=newbie@example.com has_password=false
+PASS  数据落库 / users 与 user_identities 各一条  ::  user_id=23 password IS NULL · identity=700001
+PASS  桩服务收到的换令牌请求符合规范  ::  四个必填参数齐备，读用户带了 Bearer 头
+PASS  二次登录 / 同一个 GitHub 用户不重复建号  ::  user_id 仍是 23，用户总数未变（2）
+PASS  账号关联 / 已验证邮箱命中已有账号时直接关联  ::  关联到 admin，用户数未变，原密码保留
+PASS  【安全】未验证邮箱不得顶替已有账号  ::  未关联 admin，另建了新账号（700003+sneaky@users.noreply.github.com）
+PASS  邮箱兜底 / 没开放邮箱时用 GitHub noreply 地址  ::  700004+noemail@users.noreply.github.com
+PASS  state 校验 / 无效 state 被拒 400  ::  HTTP 400 + "授权已失效，请重新发起"
+PASS  state 校验 / 同一个 state 只能用一次  ::  第一次 200，重放 400
+PASS  state 校验 / 登录的 state 不能用于绑定  ::  跨用途使用被拒 400
+PASS  错误 code / 换取令牌失败返回 401  ::  HTTP 401 + "GitHub 授权失败，请重新登录"
+PASS  参数校验 / 缺 code 或 state 返回 400  ::  缺 code、缺 state 均为 400
+PASS  无密码账号 / 邮箱密码登录给出与密码错误完全相同的提示  ::  统一提示「邮箱或密码不正确」
+PASS  注册冲突 / 用第三方账号的邮箱注册时给出可行动提示  ::  HTTP 409 + "该邮箱已用于第三方登录，请直接用 GitHub 登录后再设置密码"
+PASS  身份列表 / 需要登录（匿名 401）  ::  HTTP 401
+PASS  身份列表 / 登录后能看到已绑定的 GitHub  ::  provider=github @newbie
+PASS  【回归】SNAKE_CASE 的坑：多词字段必须能落库（封面）  ::  cover_path 写入并读回一致，测试文章已清理
+PASS  绑定 / 已登录账号可绑定另一个 GitHub 身份  ::  已绑定 700005
+PASS  绑定 / 已被他人绑定的 GitHub 身份返回 409  ::  HTTP 409 + "这个 GitHub 账号已经绑定了其它账号"
+PASS  解绑 / 唯一登录方式时被拒 400  ::  HTTP 400 + "这是当前账号唯一的登录方式，解绑后将无法登录。请先设置密码再解绑。"
+PASS  解绑 / 设置密码后即可解绑（且解绑后还能用密码登录）  ::  设置密码 → 解绑成功 → 密码仍可登录
+PASS  解绑 / newbie 解绑后只剩一种登录方式，第二次被守卫拦下  ::  第一次 200；第二次被守卫拦下并提示先设密码；再登录自动写回身份
+PASS  解绑 / 完全没有绑定第三方时返回 404  ::  HTTP 404 + "当前账号没有绑定 GitHub"
+PASS  绑定后 / 新身份也能用于登录同一账号  ::  用绑定过的身份登录，仍回到 user_id=23
+PASS  未配置 / enabled 返回 false  ::  enabled=false（前端据此隐藏按钮）
+PASS  未配置 / 发起登录返回 503 而不是 500  ::  HTTP 503 + "本站未配置 GitHub 登录"
+PASS  未配置 / 原有邮箱密码登录不受影响  ::  邮箱密码登录正常

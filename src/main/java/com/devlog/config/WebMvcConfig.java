@@ -27,11 +27,18 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        // 只保护需要登录的路径；公开的 /api/articles、/api/tags、/api/settings 不拦截
+        // 只保护需要登录的路径；公开的 /api/articles、/api/tags、/api/settings 不拦截。
+        //
+        // 第三方登录这块要分清楚：发起登录（authorize）与回调（callback）必须公开，
+        // 否则用户还没登录就被拦截器挡在门外，永远进不来；
+        // 而「列出/绑定/解绑登录方式」操作的是当前账号，必须走鉴权。
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/api/author/**")
                 .addPathPatterns("/api/auth/me")
-                .addPathPatterns("/api/auth/password");
+                .addPathPatterns("/api/auth/password")
+                .addPathPatterns("/api/auth/identities")
+                .addPathPatterns("/api/auth/github/bind")
+                .addPathPatterns("/api/auth/github/bind-authorize");
     }
 
     /**

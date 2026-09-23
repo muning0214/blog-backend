@@ -56,6 +56,25 @@ devlog:
     allowed-origins: ${DEVLOG_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
   site:
     allow-registration: true
+  # 第三方登录（GitHub）。三项都填齐才视为「已启用」：
+  # 缺任意一项时 /api/auth/github/enabled 返回 false，前端把登录按钮藏起来，
+  # 接口本身返回 503 而不是 500 —— 这是「本部署没开这个功能」，不是服务出错。
+  github:
+    # client-id / client-secret 只写在 application-local.yml 或环境变量里，绝不进仓库。
+    # 申请地址：GitHub → Settings → Developer settings → OAuth Apps → New OAuth App
+    client-id: ${GITHUB_CLIENT_ID:}
+    client-secret: ${GITHUB_CLIENT_SECRET:}
+    # 必须与 OAuth App 里登记的 Authorization callback URL 完全一致，差一个字符都会被拒。
+    # 指向前端页面而不是后端接口：令牌通过响应体返回，不落在跳转 URL 上。
+    redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:5173/auth/github/callback}
+    # 以下三项默认就是官方地址。做成可配置的唯一目的是：
+    # 指向本地桩服务就能把整条 OAuth 链路（换令牌 → 读用户 → 读邮箱）端到端测完，
+    # 不需要真实凭据，也不用靠人工在浏览器上点一遍。
+    # authorize-uri: https://github.com/login/oauth/authorize
+    # token-uri:     https://github.com/login/oauth/access_token
+    # api-base:      https://api.github.com
+    # read:user 拿昵称与头像；user:email 才能读到已验证邮箱（用于与既有账号关联）
+    # scope: read:user user:email
 
 logging:
   level:

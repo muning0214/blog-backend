@@ -9,7 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * 自动映射到 camelCase 字段（例如 expiration-ms -> expirationMs）。
  */
 @ConfigurationProperties(prefix = "devlog")
-public record DevLogProperties(Jwt jwt, Upload upload, Cors cors, Site site) {
+public record DevLogProperties(Jwt jwt, Upload upload, Cors cors, Site site, Github github) {
 
     public record Jwt(String secret, Long expirationMs, String header, String prefix) {
         public long expirationMsOrDefault() {
@@ -50,6 +50,47 @@ public record DevLogProperties(Jwt jwt, Upload upload, Cors cors, Site site) {
     public record Site(Boolean allowRegistration) {
         public boolean allowRegistrationOrDefault() {
             return allowRegistration == null || allowRegistration;
+        }
+    }
+
+    /**
+     * 第三方登录（当前只有 GitHub）。
+     *
+     * <p>clientId / clientSecret 只写在 application-local.yml 或环境变量里，不进仓库 ——
+     * 和数据库密码同样的处理方式。三者缺一就视为「未启用」，接口返回 503，
+     * 前端据此把 GitHub 登录按钮藏起来，而不是点了报错。
+     *
+     * <p>三个 URL 做成可配置不是为了「灵活」：是为了能用本地桩服务把整条 OAuth 链路
+     * 端到端跑完（没有真实凭据时，否则只能靠人工点一遍）。默认值就是官方地址。
+     */
+    public record Github(String clientId, String clientSecret, String redirectUri,
+                         String authorizeUri, String tokenUri, String apiBase, String scope) {
+
+        public boolean enabled() {
+            return clientId != null && !clientId.isBlank()
+                    && clientSecret != null && !clientSecret.isBlank()
+                    && redirectUri != null && !redirectUri.isBlank();
+        }
+
+        public String authorizeUriOrDefault() {
+            return blankTo(authorizeUri, "https://github.com/login/oauth/authorize");
+        }
+
+        public String tokenUriOrDefault() {
+            return blankTo(tokenUri, "https://github.com/login/oauth/access_token");
+        }
+
+        public String apiBaseOrDefault() {
+            return blankTo(apiBase, "https://api.github.com");
+        }
+
+        public String scopeOrDefault() {
+            // read:user 拿昵称与头像；user:email 才能读到已验证邮箱（用于与既有账号关联）
+            return blankTo(scope, "read:user user:email");
+        }
+
+        private static String blankTo(String value, String fallback) {
+            return value == null || value.isBlank() ? fallback : value;
         }
     }
 }
