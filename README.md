@@ -3,7 +3,7 @@
 DevLog 个人博客的**后端**：Spring Boot 3.2 + MyBatis-Plus + MySQL。
 负责鉴权、业务校验、文件存储与静态资源分发，不掺任何界面逻辑。
 
-前端在 [blog-frontend](https://github.com/muning0214/blog-frontend)，
+前端在 [devlog-client](https://github.com/muning0214/devlog-client)，
 表结构与初始数据在 `blog-database`（数据库独立成模块）。
 
 ## 技术栈
@@ -186,7 +186,7 @@ mvn spring-boot:run
 这张表是「第三方身份 → 账号」的映射，核心约束是同一身份全局唯一。
 若用逻辑删除，解绑再绑定会留下多行 deleted=1 的同一身份而直接撞唯一键。
 
-**第三方登录的三条规则**（详见 [后端 README 的第三方登录章节](https://github.com/muning0214/blog-backend#可选接入-github-登录)）
+**第三方登录的三条规则**（详见 [后端 README 的第三方登录章节](https://github.com/muning0214/devlog-server#可选接入-github-登录)）
 1. 已绑定的身份直接登入对应账号
 2. 未绑定，但 GitHub 返回的**已验证**邮箱命中已有账号 → 自动关联，不新建账号
 3. 其余建一个**没有密码**的新账号（`users.password` 为 NULL）
