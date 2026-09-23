@@ -154,7 +154,7 @@ async function main() {
       {
         DEVLOG_GITHUB_CLIENTID: 'stub-client-id',
         DEVLOG_GITHUB_CLIENTSECRET: 'stub-client-secret',
-        DEVLOG_GITHUB_REDIRECTURI: 'http://localhost:5173/auth/github/callback',
+        DEVLOG_GITHUB_REDIRECTURI: 'http://localhost:5174/auth/github/callback',
         DEVLOG_GITHUB_AUTHORIZEURI: `${STUB}/login/oauth/authorize`,
         DEVLOG_GITHUB_TOKENURI: `${STUB}/login/oauth/access_token`,
         DEVLOG_GITHUB_APIBASE: STUB,
@@ -204,7 +204,7 @@ async function main() {
     assert(parsed.searchParams.get('client_id') === 'stub-client-id', '缺少 client_id')
     assert(parsed.searchParams.get('state') === state, 'state 未拼进 URL')
     assert(parsed.searchParams.get('scope') === 'read:user user:email', `scope=${parsed.searchParams.get('scope')}`)
-    assert(parsed.searchParams.get('redirect_uri') === 'http://localhost:5173/auth/github/callback', 'redirect_uri 不对')
+    assert(parsed.searchParams.get('redirect_uri') === 'http://localhost:5174/auth/github/callback', 'redirect_uri 不对')
     assert(!url.includes('stub-client-secret'), '授权地址里绝不能出现 client_secret')
     assert(state && state.length >= 32, `state 太短：${state}`)
     loginToken = state
@@ -243,7 +243,7 @@ async function main() {
     assert(form.get('client_id') === 'stub-client-id', 'client_id 不对')
     assert(form.get('client_secret') === 'stub-client-secret', 'client_secret 没发出来')
     assert(form.get('code') === 'new-user', 'code 没传')
-    assert(form.get('redirect_uri') === 'http://localhost:5173/auth/github/callback', 'redirect_uri 没传')
+    assert(form.get('redirect_uri') === 'http://localhost:5174/auth/github/callback', 'redirect_uri 没传')
     const userReq = seen.find((s) => s.path === '/user')
     assert(userReq && userReq.auth === 'Bearer stub-token-new-user', '读用户时没带 Bearer 令牌')
     return '四个必填参数齐备，读用户带了 Bearer 头'

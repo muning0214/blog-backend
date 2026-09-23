@@ -100,11 +100,11 @@ mvn spring-boot:run
 | `devlog.upload.dir` | — | `./uploads` | 文件落盘根目录 |
 | `devlog.upload.max-image-bytes` | — | 6 MB | 单张图片上限 |
 | `devlog.upload.max-file-bytes` | — | 20 MB | 单个附件上限 |
-| `devlog.cors.allowed-origins` | `DEVLOG_CORS_ALLOWED_ORIGINS` | `http://localhost:5173,...` | 逗号分隔；**留空则不放开任何跨域** |
+| `devlog.cors.allowed-origins` | `DEVLOG_CORS_ALLOWED_ORIGINS` | `http://localhost:5174,...` | 逗号分隔；**留空则不放开任何跨域** |
 | `devlog.site.allow-registration` | — | `true` | 是否开放注册 |
 | `devlog.github.client-id` | `GITHUB_CLIENT_ID` | 空 | 第三方登录，三项齐备才算启用 |
 | `devlog.github.client-secret` | `GITHUB_CLIENT_SECRET` | 空 | 只写 local 配置 |
-| `devlog.github.redirect-uri` | `GITHUB_REDIRECT_URI` | `http://localhost:5173/auth/github/callback` | 必须与 OAuth App 登记值完全一致 |
+| `devlog.github.redirect-uri` | `GITHUB_REDIRECT_URI` | `http://localhost:5174/auth/github/callback` | 必须与 OAuth App 登记值完全一致 |
 | `devlog.github.authorize-uri` / `token-uri` / `api-base` | — | GitHub 官方地址 | 可改指向本地桩服务，用于测试 |
 
 > ⚠️ 多词属性用**环境变量**注入时必须用连写形式（`GITHUB_REDIRECTURI` 而不是 `GITHUB_REDIRECT_URI`）：
